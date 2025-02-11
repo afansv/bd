@@ -13,7 +13,7 @@
 
 ```sh
 # Clone the repository and build manually, or install using go install
- go install github.com/yourusername/bd@latest
+go install github.com/afansv/bd@latest
 ```
 
 ## Usage

@@ -1,0 +1,6 @@
+{
+  "binDir": "bin",
+  "binaries": [
+    { "package": "github.com/golangci/golangci-lint/cmd/golangci-lint", "version": "v1.63.4", "name": "golangci-lint" }
+  ]
+}

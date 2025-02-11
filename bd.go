@@ -15,9 +15,9 @@ type Config struct {
 }
 
 type Binary struct {
-	Package string `yaml:"package"`
-	Version string `yaml:"version"`
-	Name    string `yaml:"name"`
+	Package string `json:"package"`
+	Version string `json:"version"`
+	Name    string `json:"name"`
 }
 
 func main() {
@@ -81,7 +81,7 @@ func loadConfig() (*Config, error) {
 				binary.Version = pkgParts[1]
 			}
 			if binary.Version != pkgParts[1] {
-				return nil, fmt.Errorf("version mismatch for binary %q", binary.Package)
+				return nil, fmt.Errorf("version mismatch for binary %s", binary.Package)
 			}
 		}
 

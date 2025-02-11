@@ -30,7 +30,7 @@ func main() {
 
 	config, err := loadConfig()
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Failed to load bd.yaml: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to load bd.json: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -168,7 +168,7 @@ func execBinary(config *Config, binDir, name string, args []string) {
 	}
 
 	if binPath == "" {
-		_, _ = fmt.Fprintf(os.Stderr, "Binary '%s' not found in bd.yaml", name)
+		_, _ = fmt.Fprintf(os.Stderr, "Binary '%s' not found in bd.json", name)
 		os.Exit(1)
 	}
 

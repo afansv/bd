@@ -29,6 +29,7 @@ go install github.com/afansv/bd@latest
   ]
 }
 ```
+> **Note:** It is recommended to specify exact versions instead of `latest` to ensure reproducible environments.
 
 ### 2. Install binaries
 ```sh
@@ -42,10 +43,19 @@ bd exec goimports -w main.go
 ```
 If the binary is not found, `bd` will suggest running `bd install` first.
 
+Alternatively, you can run binaries directly from `binDir`:
+```sh
+./bin/goimports -w main.go
+```
+
 ## Why use bd?
 - Keeps your project’s tooling self-contained, avoiding version conflicts.
 - Works without modifying `go.mod` or relying on `tools.go`.
 - Ensures team-wide consistency in CI/CD and local development.
+
+## Best Practices
+- Store `bd.json` in the repository. It should **not** be added to `.gitignore`.
+- The `binDir` directory should be added to `.gitignore` to avoid committing installed binaries.
 
 ## License
 MIT

@@ -37,6 +37,8 @@ bd install
 ```
 This will install the specified binaries into `binDir`, appending their versions to the filenames.
 
+> **Note:** You can use `--clean`, `-clean` or `-c` option to clean `binDir` before installing.
+
 ### 3. Execute binaries
 ```sh
 bd exec goimports -w main.go

@@ -38,6 +38,18 @@ func main() {
 		die(fmt.Sprintf("Failed to resolve BinDir: %v", err))
 	}
 
+	clean := false
+	for _, arg := range os.Args[2:] {
+		if arg == "--clean" || arg == "-clean" || arg == "-c" {
+			clean = true
+		}
+	}
+	if clean {
+		if err := os.RemoveAll(binDir); err != nil {
+			die(fmt.Sprintf("failed to clean %s: %v", binDir, err))
+		}
+	}
+
 	switch os.Args[1] {
 	case "install":
 		if err := installBinaries(config, binDir); err != nil {
@@ -66,12 +78,12 @@ func die(msg string) {
 func loadConfig() (*Config, error) {
 	file, err := os.ReadFile(configFileName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read %s: %v", configFileName, err)
 	}
 
 	var config Config
 	if err := json.Unmarshal(file, &config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal %s: %v", configFileName, err)
 	}
 
 	if config.BinDir == "" {

@@ -2,8 +2,6 @@
 <img src="_media/logo.png" width="256">
 </p>
 
-------------------------------------
-
 # bd - Binary Dependency Manager for Go
 
 `bd` is a simple tool for managing Go binary dependencies. It allows you to specify the required tools, their versions, and target installation directory in a configuration file (`bd.json`).

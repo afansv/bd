@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 type Config struct {
@@ -16,12 +19,37 @@ type Config struct {
 }
 
 type Binary struct {
-	Package string `json:"package"`
-	Version string `json:"version"`
-	Name    string `json:"name"`
+	Package   string `json:"package"`
+	Version   string `json:"version"`
+	Name      string `json:"name"`
+	Toolchain string `json:"toolchain"`
 }
 
 const configFileName = "bd.json"
+
+var isWindowsDevModeEnabled = false
+
+func init() {
+	isWindowsDevModeEnabled = checkIsWindowsDevModeEnabled()
+}
+
+func checkIsWindowsDevModeEnabled() bool {
+	if runtime.GOOS != "windows" {
+		return false
+	}
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer func(k registry.Key) {
+		_ = k.Close()
+	}(k)
+	val, _, err := k.GetIntegerValue("AllowDevelopmentWithoutDevLicense")
+	if err != nil {
+		return false
+	}
+	return val == 1
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -129,11 +157,16 @@ func installBinaries(config *Config, binDir string) error {
 }
 
 func installBinary(bin Binary, binDir string) error {
-	finalPath := filepath.Join(binDir, buildBinName(bin.Name, bin.Version))
+	finalPath := filepath.Join(binDir, buildBinName(bin.Name, bin.Version, bin.Toolchain))
 	symlinkPath := filepath.Join(binDir, buildSymlinkName(bin.Name))
 
+	printVersion := bin.Version
+	if bin.Toolchain != "" {
+		printVersion += fmt.Sprintf(" (%s)", bin.Toolchain)
+	}
+
 	if _, err := os.Stat(finalPath); err == nil && bin.Version != "latest" {
-		fmt.Printf("Already installed: %s %s\n", bin.Name, bin.Version)
+		fmt.Printf("Already installed: %s %s\n", bin.Name, printVersion)
 		return symlinkBinary(finalPath, symlinkPath)
 	}
 
@@ -145,6 +178,9 @@ func installBinary(bin Binary, binDir string) error {
 
 	cmd := exec.Command("go", "install", fmt.Sprintf("%s@%s", bin.Package, bin.Version))
 	cmd.Env = append(os.Environ(), "GOBIN="+tempDir)
+	if bin.Toolchain != "" {
+		cmd.Env = append(cmd.Env, "GOTOOLCHAIN="+bin.Toolchain)
+	}
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 
 	if err := cmd.Run(); err != nil {
@@ -165,7 +201,7 @@ func installBinary(bin Binary, binDir string) error {
 		return fmt.Errorf("symlink binary: %w", err)
 	}
 
-	fmt.Printf("Installed: %s %s\n", bin.Name, bin.Version)
+	fmt.Printf("Installed: %s %s\n", bin.Name, printVersion)
 
 	return nil
 }
@@ -174,16 +210,46 @@ func symlinkBinary(target, link string) error {
 	if _, err := os.Stat(link); err == nil {
 		_ = os.Remove(link)
 	}
-	if err := os.Symlink(target, link); err != nil {
-		return fmt.Errorf("create symlink: %w", err)
+
+	// symlink on windows can be accessed only if dev mode is enabled
+	if runtime.GOOS != "windows" || isWindowsDevModeEnabled {
+		if err := os.Symlink(target, link); err != nil {
+			return fmt.Errorf("create symlink: %w", err)
+		}
+		return nil
 	}
+
+	// fallback: not symlink, but just copy
+	{
+		source, err := os.Open(target)
+		if err != nil {
+			return fmt.Errorf("open target: %w", err)
+		}
+		defer func(source *os.File) {
+			_ = source.Close()
+		}(source)
+
+		destination, err := os.Create(link)
+		if err != nil {
+			return fmt.Errorf("create fake symlink file: %w", err)
+		}
+		defer func(destination *os.File) {
+			_ = destination.Close()
+		}(destination)
+
+		_, err = io.Copy(destination, source)
+		if err != nil {
+			return fmt.Errorf("copy to fake symlink file: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func execBinary(config *Config, binDir, name string, args []string) {
 	for _, bin := range config.Binaries {
 		if bin.Name == name {
-			binPath := filepath.Join(binDir, buildBinName(bin.Name, bin.Version))
+			binPath := filepath.Join(binDir, buildBinName(bin.Name, bin.Version, bin.Toolchain))
 			if _, err := os.Stat(binPath); os.IsNotExist(err) {
 				die(fmt.Sprintf("Binary '%s' is not installed. Run 'bd install' first.", name))
 			}
@@ -209,8 +275,8 @@ func buildSymlinkName(name string) string {
 	return name
 }
 
-func buildBinName(name, version string) string {
-	binName := fmt.Sprintf("%s-%s", name, version)
+func buildBinName(name, version, toolchain string) string {
+	binName := strings.Join([]string{name, version, toolchain}, "-")
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
 	}

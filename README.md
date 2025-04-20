@@ -1,4 +1,10 @@
-# bd - Binary Dependency Manager
+<p align="center">
+<img src="_media/logo.png" width="256">
+</p>
+
+------------------------------------
+
+# bd - Binary Dependency Manager for Go
 
 `bd` is a simple tool for managing Go binary dependencies. It allows you to specify the required tools, their versions, and target installation directory in a configuration file (`bd.json`).
 
@@ -8,6 +14,7 @@
 - Supports custom binary names with version suffixes.
 - Avoids dependency conflicts often encountered with `tools.go`.
 - Provides an easy way to execute installed binaries with `bd exec`.
+
 
 ## Installation
 
@@ -30,6 +37,21 @@ go install github.com/afansv/bd@latest
 }
 ```
 > **Note:** It is recommended to specify exact versions instead of `latest` to ensure reproducible environments.
+
+Also, you can set Go version for specific package via `toolchain` property:
+```json
+{
+  "binDir": "bin",
+  "binaries": [
+    {
+      "package": "github.com/golangci/golangci-lint/cmd/golangci-lint",
+      "version": "v1.63.4",
+      "name": "golangci-lint",
+      "toolchain": "go1.23.5"
+    }
+  ]
+}
+```
 
 ### 2. Install binaries
 ```sh

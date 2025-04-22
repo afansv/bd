@@ -276,7 +276,11 @@ func buildSymlinkName(name string) string {
 }
 
 func buildBinName(name, version, toolchain string) string {
-	binName := strings.Join([]string{name, version, toolchain}, "-")
+	nameParts := []string{name, version}
+	if toolchain != "" {
+		nameParts = append(nameParts, toolchain)
+	}
+	binName := strings.Join(nameParts, "-")
 	if runtime.GOOS == "windows" {
 		binName += ".exe"
 	}

@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"golang.org/x/sys/windows/registry"
 )
 
 type Config struct {
@@ -27,28 +25,10 @@ type Binary struct {
 
 const configFileName = "bd.json"
 
-var isWindowsDevModeEnabled = false
+var canSymlink = false
 
 func init() {
-	isWindowsDevModeEnabled = checkIsWindowsDevModeEnabled()
-}
-
-func checkIsWindowsDevModeEnabled() bool {
-	if runtime.GOOS != "windows" {
-		return false
-	}
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock`, registry.QUERY_VALUE)
-	if err != nil {
-		return false
-	}
-	defer func(k registry.Key) {
-		_ = k.Close()
-	}(k)
-	val, _, err := k.GetIntegerValue("AllowDevelopmentWithoutDevLicense")
-	if err != nil {
-		return false
-	}
-	return val == 1
+	canSymlink = checkCanSymlink()
 }
 
 func main() {
@@ -211,8 +191,7 @@ func symlinkBinary(target, link string) error {
 		_ = os.Remove(link)
 	}
 
-	// symlink on windows can be accessed only if dev mode is enabled
-	if runtime.GOOS != "windows" || isWindowsDevModeEnabled {
+	if canSymlink {
 		if err := os.Symlink(target, link); err != nil {
 			return fmt.Errorf("create symlink: %w", err)
 		}

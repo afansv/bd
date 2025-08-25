@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 )
 
 type Config struct {
@@ -192,10 +194,13 @@ func symlinkBinary(target, link string) error {
 	}
 
 	if canSymlink {
-		if err := os.Symlink(target, link); err != nil {
+		err := os.Symlink(target, link)
+		switch {
+		case err == nil:
+			return nil
+		case !errors.Is(err, syscall.EXDEV):
 			return fmt.Errorf("create symlink: %w", err)
 		}
-		return nil
 	}
 
 	// fallback: not symlink, but just copy

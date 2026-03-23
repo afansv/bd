@@ -19,10 +19,11 @@ type Config struct {
 }
 
 type Binary struct {
-	Package   string `json:"package"`
-	Version   string `json:"version"`
-	Name      string `json:"name"`
-	Toolchain string `json:"toolchain"`
+	Package      string `json:"package"`
+	Version      string `json:"version"`
+	Name         string `json:"name"`
+	Toolchain    string `json:"toolchain"`
+	GoExperiment string `json:"goexperiment"`
 }
 
 const configFileName = "bd.json"
@@ -163,6 +164,13 @@ func installBinary(bin Binary, binDir string) error {
 	if bin.Toolchain != "" {
 		cmd.Env = append(cmd.Env, "GOTOOLCHAIN="+bin.Toolchain)
 	}
+
+	goExperiment := "none"
+	if bin.GoExperiment != "" {
+		goExperiment = bin.GoExperiment
+	}
+	cmd.Env = append(cmd.Env, "GOEXPERIMENT="+goExperiment)
+
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 
 	if err := cmd.Run(); err != nil {
